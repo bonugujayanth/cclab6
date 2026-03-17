@@ -8,15 +8,12 @@ pipeline {
             }
         }
 
-        stage('Deploy Backends') {
+        stage('Deploy Backend') {
             steps {
                 sh '''
-                    docker rm -f backend1 backend2 || true
-                    # Use host network and map ports since they share the same IP
+                    docker rm -f backend1 || true
+                    # Use host network; backend listens on 8080 by default
                     docker run -d --name backend1 --network host backend-app
-                    # Note: If your app hardcodes 8080, you can only run one on 'host' 
-                    # unless the app allows port configuration. 
-                    # For this lab, let's stick to one backend if host networking limits you.
                     sleep 3
                 '''
             }
@@ -26,6 +23,7 @@ pipeline {
             steps {
                 sh '''
                     docker rm -f nginx-lb || true
+                    # Use host network; NGINX listens on 80 by default
                     docker run -d --name nginx-lb --network host nginx:latest
                     sleep 2
                     docker cp nginx/default.conf nginx-lb:/etc/nginx/conf.d/default.conf
@@ -33,20 +31,14 @@ pipeline {
                 '''
             }
         }
-
-        stage('Verify Running Containers') {
-            steps {
-                sh 'docker ps'
-            }
-        }
     }
 
     post {
         success {
-            echo 'Pipeline executed successfully, NGINX load balancer is running.'
+            echo 'Pipeline executed successfully.'
         }
         failure {
-            echo 'Pipeline failed. Check console logs for errors.'
+            echo 'Pipeline failed.'
         }
     }
 }
